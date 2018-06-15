@@ -1,0 +1,6 @@
+# files
+*.pyc
+
+# folders
+logs/
+__pycache__
