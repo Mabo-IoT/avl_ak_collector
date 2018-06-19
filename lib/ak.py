@@ -73,7 +73,7 @@ class AKClient(object):
         """ recv """
 
         try:
-            data = self.sock.recv(30000)
+            data = self.sock.recv(1024)
 
         except Exception as ex:
             logger.debug(ex)
@@ -91,35 +91,31 @@ class AKClient(object):
 
     def query(self, cmd):
         """ query """
-
         # channel number for build struct
         channel_number = 0
-
+        # flag of if data is recv enough
+        RECV_ENOUGH = 0
+        out = b''
         data = {}
-
-        # cmds_set = set()
-
-        # for cmd in cmds:
 
         cmd = cmd.upper()
 
-        if True:  # self.validate(cmd):
-            # cmds_set.add(cmd)
-            # pass
-
-            # continue
-
-            # logger.debug(cmds_set)
+        if True: 
 
             msg = self.pack(cmd, channel_number)
-
             # print "------ ak.py-msg--- %s" % (msg)
             self._send(msg)
 
-            data_recv = self._recv()
-            # print "------ ak.py-data_recv--- %s" % (data_recv)
-            out = self.unpack(data_recv)
-            # print(len(out))
+            while not RECV_ENOUGH:
+                data_recv = self._recv()
+                
+                RECV_ENOUGH = self.check_data_recv(data_recv)
+                # accumulate recv data if not enough
+                out = out + data_recv
+
+            out = self.unpack(out)
+                # print(len(out))
+
 
             if len(out) > 6:
                 data[cmd] = out[6]
@@ -131,7 +127,18 @@ class AKClient(object):
         else:
             logger.warning("not allowed:[%s]" % cmd)
             return {}
-
+    
+    @staticmethod
+    def check_data_recv(data):
+        """
+        check recv data if enough by the last byte
+        """
+        end = bytes([ETX])
+        if data.endswith(end):
+            return True
+        else:
+            return False
+        
     def query_all(self, cmds):
         """ query """
 
